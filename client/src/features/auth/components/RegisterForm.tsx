@@ -2,6 +2,7 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { Button, FormField, Input } from "@/components/ui"
 import { PasswordInput } from "./PasswordInput"
+import { GoogleAuthButton } from "./GoogleAuthButton"
 import { validateRegisterForm } from "../auth.validation"
 import type { RegisterFormValues, RegisterFormErrors } from "../auth.types"
 import { useAuth } from "@/context/AuthContext"
@@ -10,7 +11,7 @@ import { AlertCircle, User, Mail, Lock, ArrowRight } from "lucide-react"
 
 export const RegisterForm: React.FC = () => {
   const navigate = useNavigate()
-  const { register } = useAuth()
+  const { register, loginWithGoogle } = useAuth()
 
   const [values, setValues] = React.useState<RegisterFormValues>({
     name: "",
@@ -98,6 +99,27 @@ export const RegisterForm: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true)
+    setGeneralError(null)
+    try {
+      const { isNewUser } = await loginWithGoogle(credential)
+      if (isNewUser) {
+        navigate("/onboarding")
+      } else {
+        navigate("/dashboard")
+      }
+    } catch (err: any) {
+      setGeneralError(err?.message || "Google sign-up failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleError = (errorMessage: string) => {
+    setGeneralError(errorMessage)
   }
 
   return (
@@ -215,6 +237,24 @@ export const RegisterForm: React.FC = () => {
           </Button>
         </div>
       </form>
+
+      {/* Divider */}
+      <div className="relative flex items-center justify-center">
+        <div className="w-full border-t border-border" />
+        <span className="absolute bg-card px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          Or sign up with
+        </span>
+      </div>
+
+      {/* Google Sign-Up Button */}
+      <div>
+        <GoogleAuthButton
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          text="signup_with"
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import React from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider } from "react-router-dom"
+import { GoogleOAuthProvider } from "@react-oauth/google"
 import { router } from "@/app/router"
 import { AuthContextProvider } from "@/context/AuthContext"
 import { ThemeProvider } from "@/context/ThemeContext"
@@ -16,16 +17,20 @@ const queryClient = new QueryClient({
   },
 })
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "1003139413210-mi8ufkugm4vgmn4thcn1otopgt0o4lbi.apps.googleusercontent.com"
+
 export const AppProviders: React.FC = () => {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthContextProvider>
-            <RouterProvider router={router} />
-          </AuthContextProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <AuthContextProvider>
+              <RouterProvider router={router} />
+            </AuthContextProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   )
 }

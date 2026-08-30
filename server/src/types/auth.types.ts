@@ -9,6 +9,7 @@ export interface SafeUser {
   name: string
   email: string
   avatarUrl?: string | null
+  googleId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -16,4 +17,5 @@ export interface SafeUser {
 export interface AuthResponseData {
   user: SafeUser
   token: string
+  isNewUser?: boolean
 }

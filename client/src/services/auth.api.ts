@@ -5,6 +5,7 @@ export interface AuthUser {
   name: string
   email: string
   avatarUrl?: string | null
+  googleId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -12,6 +13,7 @@ export interface AuthUser {
 export interface AuthResponseData {
   user: AuthUser
   token: string
+  isNewUser?: boolean
 }
 
 export const authApi = {
@@ -28,6 +30,13 @@ export const authApi = {
     const res = await api.post<ApiResponse<AuthResponseData>>("/auth/login", {
       email,
       password,
+    })
+    return res.data!
+  },
+
+  googleLogin: async (credential: string): Promise<AuthResponseData> => {
+    const res = await api.post<ApiResponse<AuthResponseData>>("/auth/google", {
+      credential,
     })
     return res.data!
   },

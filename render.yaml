@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: skillsync-api
+    env: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install && npm run prisma:generate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_LLM_MODEL
+        value: gemini-1.5-flash
+      - key: GEMINI_EMBEDDING_MODEL
+        value: text-embedding-004

@@ -12,6 +12,7 @@ export interface AppConfig {
   JWT_SECRET: string
   JWT_EXPIRES_IN: string
   API_PREFIX: string
+  GOOGLE_CLIENT_ID: string
 }
 
 const nodeEnv = (process.env.NODE_ENV as AppConfig["NODE_ENV"]) || "development"
@@ -31,4 +32,5 @@ export const config: AppConfig = {
   JWT_SECRET: jwtSecret,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
   API_PREFIX: "/api",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
 }

@@ -9,6 +9,7 @@ export interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  loginWithGoogle: (credential: string) => Promise<{ isNewUser: boolean }>
   logout: () => void
   refreshUser: () => Promise<void>
   updateUser: (data: { name?: string; avatarUrl?: string | null }) => Promise<void>
@@ -102,6 +103,20 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(data.user)
   }
 
+  // Google OAuth sign-in handler
+  const loginWithGoogle = async (credential: string): Promise<{ isNewUser: boolean }> => {
+    const data = await authApi.googleLogin(credential)
+    try {
+      localStorage.setItem(TOKEN_STORAGE_KEY, data.token)
+      localStorage.setItem("skillsync_auth_token", data.token)
+    } catch {
+      // ignore
+    }
+    setToken(data.token)
+    setUser(data.user)
+    return { isNewUser: !!data.isNewUser }
+  }
+
   // Update profile user handler
   const updateUser = async (data: { name?: string; avatarUrl?: string | null }) => {
     const updated = await authApi.updateProfile(data)
@@ -116,6 +131,7 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
       isLoading,
       login,
       register,
+      loginWithGoogle,
       logout,
       refreshUser,
       updateUser,

@@ -20,13 +20,24 @@ export const createApp = (): Application => {
         // Allow requests with no origin (e.g. mobile apps, curl, postman)
         if (!origin) return callback(null, true)
 
+        const rawOrigins = config.CLIENT_URL ? config.CLIENT_URL.split(",") : []
+        const configuredOrigins = rawOrigins.map((u) => u.trim().replace(/\/+$/, ""))
+        const originClean = origin.replace(/\/+$/, "")
+
         const allowedOrigins = [
-          config.CLIENT_URL,
+          ...configuredOrigins,
           "http://localhost:5173",
           "http://127.0.0.1:5173",
+          "http://localhost:3000",
         ]
 
-        if (allowedOrigins.includes(origin) || config.NODE_ENV === "development") {
+        if (
+          allowedOrigins.includes(originClean) ||
+          config.NODE_ENV === "development" ||
+          originClean.endsWith(".vercel.app") ||
+          originClean.endsWith(".netlify.app") ||
+          originClean.endsWith(".pages.dev")
+        ) {
           return callback(null, true)
         }
 

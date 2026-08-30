@@ -2,6 +2,7 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { Button, FormField, Input } from "@/components/ui"
 import { PasswordInput } from "./PasswordInput"
+import { GoogleAuthButton } from "./GoogleAuthButton"
 import { validateLoginForm } from "../auth.validation"
 import type { LoginFormValues, LoginFormErrors } from "../auth.types"
 import { useAuth } from "@/context/AuthContext"
@@ -10,7 +11,7 @@ import { AlertCircle, Mail, Lock, ArrowRight } from "lucide-react"
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
 
   const [values, setValues] = React.useState<LoginFormValues>({
     email: "",
@@ -81,6 +82,27 @@ export const LoginForm: React.FC = () => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true)
+    setGeneralError(null)
+    try {
+      const { isNewUser } = await loginWithGoogle(credential)
+      if (isNewUser) {
+        navigate("/onboarding")
+      } else {
+        navigate("/dashboard")
+      }
+    } catch (err: any) {
+      setGeneralError(err?.message || "Google sign-in failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleError = (errorMessage: string) => {
+    setGeneralError(errorMessage)
   }
 
   return (
@@ -154,6 +176,24 @@ export const LoginForm: React.FC = () => {
           </Button>
         </div>
       </form>
+
+      {/* Divider */}
+      <div className="relative flex items-center justify-center">
+        <div className="w-full border-t border-border" />
+        <span className="absolute bg-card px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          Or continue with
+        </span>
+      </div>
+
+      {/* Google Sign-In Button */}
+      <div>
+        <GoogleAuthButton
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          text="signin_with"
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   )
 }

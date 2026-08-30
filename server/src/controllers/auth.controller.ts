@@ -21,6 +21,21 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
+export async function googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { credential } = req.body
+    const result = await authService.authenticateWithGoogle(credential)
+    sendSuccess(
+      res,
+      result.isNewUser ? "Google registration successful" : "Google sign-in successful",
+      result,
+      200
+    )
+  } catch (error) {
+    next(error)
+  }
+}
+
 export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) {

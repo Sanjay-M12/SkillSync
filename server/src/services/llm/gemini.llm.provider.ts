@@ -27,6 +27,15 @@ export class GeminiLLMProvider implements ILLMProvider {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${apiKey}`
 
+      const generationConfig: Record<string, any> = {
+        temperature: options?.temperature ?? LLM_CONFIG.temperature,
+        maxOutputTokens: options?.maxTokens ?? LLM_CONFIG.maxOutputTokens,
+      }
+
+      if (systemPrompt.includes("JSON") || systemPrompt.includes("json")) {
+        generationConfig.responseMimeType = "application/json"
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,16 +50,14 @@ export class GeminiLLMProvider implements ILLMProvider {
               parts: [{ text: userPrompt }],
             },
           ],
-          generationConfig: {
-            temperature: options?.temperature ?? LLM_CONFIG.temperature,
-            maxOutputTokens: options?.maxTokens ?? LLM_CONFIG.maxOutputTokens,
-          },
+          generationConfig,
         }),
       })
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => "")
         console.warn(
-          `[GeminiLLMProvider] API returned status ${response.status}. Falling back to local synthesizer.`
+          `[GeminiLLMProvider] API error (${response.status}): ${errorText.slice(0, 300)}. Falling back to local synthesizer.`
         )
         return await localLLMProvider.generateAnswer(systemPrompt, userPrompt, options)
       }

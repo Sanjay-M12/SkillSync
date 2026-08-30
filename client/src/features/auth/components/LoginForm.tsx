@@ -186,7 +186,7 @@ export const LoginForm: React.FC = () => {
       </div>
 
       {/* Google Sign-In Button */}
-      <div>
+      <div className="flex w-full justify-center">
         <GoogleAuthButton
           onSuccess={handleGoogleSuccess}
           onError={handleGoogleError}

@@ -7,7 +7,6 @@ export interface GoogleAuthButtonProps {
   onError?: (error: string) => void
   text?: "signin_with" | "signup_with" | "continue_with"
   isLoading?: boolean
-  width?: string
 }
 
 export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
@@ -15,7 +14,6 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   onError,
   text = "continue_with",
   isLoading = false,
-  width = "100%",
 }) => {
   const handleCredentialResponse = (response: CredentialResponse) => {
     if (response.credential) {
@@ -30,14 +28,14 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   }
 
   return (
-    <div className="relative w-full flex flex-col items-center justify-center min-h-[44px]">
+    <div className="w-full flex flex-col items-center justify-center min-h-[44px]">
       {isLoading ? (
         <div className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-2xs">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span>Authenticating with Google...</span>
         </div>
       ) : (
-        <div className="w-full flex justify-center [&>div]:!w-full [&>div>div]:!w-full [&_iframe]:!w-full">
+        <div className="w-full flex items-center justify-center [&>div]:!mx-auto [&>div]:!flex [&>div]:!justify-center [&_iframe]:!mx-auto">
           <GoogleLogin
             onSuccess={handleCredentialResponse}
             onError={handleCustomError}
@@ -45,8 +43,6 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
             size="large"
             text={text}
             shape="rectangular"
-            logo_alignment="left"
-            width={width}
           />
         </div>
       )}

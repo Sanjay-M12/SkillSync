@@ -11,8 +11,10 @@ import {
   SemanticSearchModal,
   AiAssistantModal,
   AiLearningToolsModal,
+  DocumentProcessingToast,
   type KnowledgeDocument,
   type KnowledgeStatsData,
+  type DocumentToastItem,
 } from "@/features/knowledge"
 
 export const KnowledgePage: React.FC = () => {
@@ -28,23 +30,72 @@ export const KnowledgePage: React.FC = () => {
   const [docToDelete, setDocToDelete] = React.useState<KnowledgeDocument | null>(null)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
+  // Notification Toast state
+  const [processingToast, setProcessingToast] = React.useState<DocumentToastItem | null>(null)
+
   // Fetch real user documents from backend
-  const loadDocuments = React.useCallback(async () => {
-    setIsLoading(true)
+  const loadDocuments = React.useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true)
     setFetchError(null)
     try {
       const data = await documentsApi.listDocuments()
       setDocuments(data)
+      return data
     } catch (err: any) {
-      setFetchError(err.message || "Unable to load knowledge base materials.")
+      if (!silent) setFetchError(err.message || "Unable to load knowledge base materials.")
+      return null
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }, [])
 
   React.useEffect(() => {
     loadDocuments()
   }, [loadDocuments])
+
+  // Real-time polling for in-flight document indexing (transitions from UPLOADED / PROCESSING -> READY)
+  React.useEffect(() => {
+    const hasInFlightDocs = documents.some(
+      (d) => d.status === "UPLOADED" || d.status === "PROCESSING"
+    )
+
+    if (!hasInFlightDocs) return
+
+    const pollInterval = setInterval(async () => {
+      const updatedDocs = await loadDocuments(true)
+      if (!updatedDocs) return
+
+      // Check if any in-flight document has now become READY or FAILED
+      for (const updatedDoc of updatedDocs) {
+        const prevDoc = documents.find((d) => d.id === updatedDoc.id)
+        if (prevDoc && (prevDoc.status === "UPLOADED" || prevDoc.status === "PROCESSING")) {
+          if (updatedDoc.status === "READY") {
+            setProcessingToast({
+              id: `ready-${updatedDoc.id}-${Date.now()}`,
+              docId: updatedDoc.id,
+              docTitle: updatedDoc.title,
+              status: "READY",
+              message: `Indexed into ${updatedDoc.totalChunks} semantic chunks${updatedDoc.pageCount ? ` across ${updatedDoc.pageCount} pages` : ""}. Study Tools & Ask AI unlocked!`,
+              totalChunks: updatedDoc.totalChunks,
+              pageCount: updatedDoc.pageCount,
+              document: updatedDoc,
+            })
+          } else if (updatedDoc.status === "FAILED") {
+            setProcessingToast({
+              id: `failed-${updatedDoc.id}-${Date.now()}`,
+              docId: updatedDoc.id,
+              docTitle: updatedDoc.title,
+              status: "FAILED",
+              message: updatedDoc.errorMessage || "Text extraction failed. Please try another file.",
+              document: updatedDoc,
+            })
+          }
+        }
+      }
+    }, 2000)
+
+    return () => clearInterval(pollInterval)
+  }, [documents, loadDocuments])
 
   // Compute real metrics from loaded documents
   const stats = React.useMemo<KnowledgeStatsData>(() => {
@@ -66,6 +117,28 @@ export const KnowledgePage: React.FC = () => {
   // Handle upload success callback from modal
   const handleUploadSuccess = (newDoc: KnowledgeDocument) => {
     setDocuments((prev) => [newDoc, ...prev.filter((d) => d.id !== newDoc.id)])
+
+    if (newDoc.status === "READY") {
+      setProcessingToast({
+        id: `ready-${newDoc.id}-${Date.now()}`,
+        docId: newDoc.id,
+        docTitle: newDoc.title,
+        status: "READY",
+        message: `Ready to use! Generated ${newDoc.totalChunks} semantic chunks.`,
+        totalChunks: newDoc.totalChunks,
+        pageCount: newDoc.pageCount,
+        document: newDoc,
+      })
+    } else {
+      setProcessingToast({
+        id: `proc-${newDoc.id}-${Date.now()}`,
+        docId: newDoc.id,
+        docTitle: newDoc.title,
+        status: "PROCESSING",
+        message: "Uploading and analyzing document... Extracting text and building semantic index.",
+        document: newDoc,
+      })
+    }
   }
 
   // Handle Ask AI trigger for a specific document
@@ -160,7 +233,7 @@ export const KnowledgePage: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={loadDocuments}
+              onClick={() => loadDocuments()}
               className="inline-flex items-center gap-1 font-semibold text-destructive hover:underline"
             >
               <RefreshCw className="h-3 w-3" />
@@ -263,6 +336,13 @@ export const KnowledgePage: React.FC = () => {
           isLoading={isDeleting}
         />
       )}
+      {/* Floating Document Processing & Ready Toast Notification */}
+      <DocumentProcessingToast
+        toast={processingToast}
+        onDismiss={() => setProcessingToast(null)}
+        onOpenTools={handleOpenTools}
+        onAskAi={handleAskAi}
+      />
     </PageContainer>
   )
 }

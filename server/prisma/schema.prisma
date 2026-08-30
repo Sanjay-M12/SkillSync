@@ -1,0 +1,262 @@
+// SkillSync Prisma Schema
+// Phase 4.3: Core Learning Hierarchy and Data Models
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------------------
+// ENUMS
+// --------------------------------------------------
+
+enum LearningLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum WeeklyHours {
+  HOURS_1_TO_3
+  HOURS_4_TO_6
+  HOURS_7_TO_10
+  HOURS_10_PLUS
+}
+
+enum TopicConfidence {
+  NOT_RATED
+  STRONG
+  NEEDS_REVISION
+  WEAK
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum DocumentType {
+  PDF
+  TXT
+  MD
+  DOCX
+}
+
+// --------------------------------------------------
+// MODELS
+// --------------------------------------------------
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  passwordHash     String?
+  avatarUrl        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  learningGoals    LearningGoal[]
+  dailyActivities  DailyActivity[]
+  achievements     UserAchievement[]
+  focusSessions    FocusSession[]
+  documents        Document[]
+  documentChunks   DocumentChunk[]
+  ragConversations RagConversation[]
+
+  @@map("users")
+}
+
+model LearningGoal {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  currentLevel LearningLevel
+  weeklyHours  WeeklyHours
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  skills Skill[]
+
+  @@index([userId])
+  @@map("learning_goals")
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  learningGoalId String
+  learningGoal   LearningGoal @relation(fields: [learningGoalId], references: [id], onDelete: Cascade)
+
+  topics Topic[]
+
+  @@index([learningGoalId])
+  @@map("skills")
+}
+
+model Topic {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  confidence  TopicConfidence @default(NOT_RATED)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([skillId])
+  @@map("topics")
+}
+
+model Task {
+  id               String   @id @default(cuid())
+  title            String
+  completed        Boolean  @default(false)
+  estimatedMinutes Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  topicId String
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+  @@map("tasks")
+}
+
+model DailyActivity {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String // Format: YYYY-MM-DD
+  tasksCompleted Int      @default(0)
+  minutesStudied Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_activities")
+}
+
+model UserAchievement {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementKey String // e.g. "FIRST_STEP", "STREAK_7_DAY", "GOAL_CRUSHER", etc.
+  unlockedAt     DateTime @default(now())
+
+  @@unique([userId, achievementKey])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+model FocusSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId          String?
+  topicId         String?
+  durationMinutes Int // e.g. 25
+  completedAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("focus_sessions")
+}
+
+// --------------------------------------------------
+// RAG KNOWLEDGE BASE MODELS (Phases 3 & 11)
+// --------------------------------------------------
+
+model Document {
+  id             String         @id @default(cuid())
+  title          String
+  originalName   String
+  storedFilename String
+  fileType       DocumentType
+  mimeType       String
+  fileSize       Int // Size in bytes
+  storagePath    String
+  status         DocumentStatus @default(PROCESSING)
+  errorMessage   String?
+  totalChunks    Int            @default(0)
+  pageCount      Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chunks        DocumentChunk[]
+  conversations RagConversation[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  chunkIndex Int
+  pageNumber Int?
+  content    String   @db.Text
+  tokenCount Int?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@index([userId])
+  @@map("document_chunks")
+}
+
+model RagConversation {
+  id         String       @id @default(cuid())
+  title      String
+  documentId String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  messages RagMessage[]
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("rag_conversations")
+}
+
+model RagMessage {
+  id         String   @id @default(cuid())
+  sender     String // "USER" | "ASSISTANT"
+  content    String   @db.Text
+  sources    Json?
+  hasContext Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  conversationId String
+  conversation   RagConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("rag_messages")
+}

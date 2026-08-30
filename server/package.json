@@ -30,7 +30,7 @@
     "google-auth-library": "^11.0.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0",
+    "multer": "^2.3.0",
     "pdf-parse": "^2.4.5",
     "prisma": "^6.4.1",
     "typescript": "^5.7.2",

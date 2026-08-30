@@ -12,9 +12,7 @@ export const prisma: PrismaClient =
     log: config.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   })
 
-if (config.NODE_ENV !== "production") {
-  global.__prismaClient = prisma
-}
+global.__prismaClient = prisma
 
 /**
  * Checks PostgreSQL connectivity safely without exposing credentials or throwing fatal errors.
